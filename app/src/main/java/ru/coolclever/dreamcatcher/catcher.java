@@ -1,34 +1,32 @@
 package ru.coolclever.dreamcatcher;
-
-import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
-
-import androidx.core.app.ActivityCompat;
-
 import com.google.gson.Gson;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.LuminanceSource;
+import com.google.zxing.MultiFormatReader;
+import com.google.zxing.NotFoundException;
+import com.google.zxing.RGBLuminanceSource;
+import com.google.zxing.Result;
+import com.google.zxing.common.HybridBinarizer;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-
 import fi.iki.elonen.NanoHTTPD;
+
 
 public class catcher implements Runnable {
 
@@ -236,14 +234,13 @@ public class catcher implements Runnable {
             long thr_id = Thread.currentThread().getId();
             coolclever_http_request_result cc_http_req_result = new coolclever_http_request_result();
 
-
             if (Method.PUT.equals(method) || Method.POST.equals(method)) {
                 try {
                     session.parseBody(files);
                 } catch (IOException ioe) {
                     return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "SERVER INTERNAL ERROR: IOException: " + ioe.getMessage());
                 } catch (ResponseException re) {
-                    return newFixedLengthResponse(re.getStatus(), MIME_PLAINTEXT, re.getMessage());
+                    return newFixedLengthResponse(re.getStatus(), MIME_PLAINTEXT, "SERVER INTERNAL ERROR: " + re.getMessage() + " (Ошибка при разборе тела запроса. Там должен быть Plain Text.)");
                 }
             }
 
@@ -309,7 +306,7 @@ public class catcher implements Runnable {
         String uri = "";
     }
 
-    //================ PHOTO CAPTION
+    //================ IMAGES
     public String RefactorImage(String in_fn, String out_fn, int X, int Y, int Q) {
 
 
@@ -364,7 +361,6 @@ public class catcher implements Runnable {
 
         return "ok_en";
     }
-
     void CloseStreams(InputStream fis, FileOutputStream fos) {
         try {
             fis.close();
@@ -375,214 +371,76 @@ public class catcher implements Runnable {
         } catch (Exception e) {
         }
     }
+    public String ClearGalery()
+    {
 
-//    class foo extends AppCompatActivity
-//    {
-//        //================ PHOTO CAPTION
-//
-//    public String GetPhoto(int X_Res, int Y_Res, int Quality)
-//    {
-//        String str_diag = "ok_en";
-//        if (!checkCameraHardware(m_Activity))
-//        {
-//            str_diag = "Не поддерживается.";
-//            return str_diag;
-//        }
-//
-//
-//        ActivityResultLauncher<String[]> mStartForResult = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), (permissions) -> {
-//            for (Map.Entry<String, Boolean> p: permissions.entrySet())
-//            {
-//                boolean all_granted = true;
-//                all_granted = all_granted && p.getValue();
-//                if (all_granted)
-//                {
-//                    startPhotoCaption(X_Res,Y_Res,Quality);
-//                }
-//                else
-//                {
-//                    //Выход с ошибкой
-//                }
-//            }
-//        });
-//
-//        String[] arr_str_perm = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
-//        mStartForResult.launch(arr_str_perm);
-//
-//        return str_diag;
-//    }
-//
-//    protected void startPhotoCaption(int x_scale, int y_scale, int ph_quality)
-//    {
-//
-//        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-//            mImageUri = getPhotoPath_N();
-//            intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
-//        }
-//        else
-//        {
-//            mImageUri = getPhotoPath_P();
-//            intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
-//        }
-//
-//        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-//
-//        ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-//                result -> {
-//                    if (result.getResultCode() == Activity.RESULT_OK) {
-//                        if (result.getResultCode() == Activity.RESULT_OK) {
-//                            String name = "scnd_" + System.currentTimeMillis() + ".jpg";
-//                            String full_name = m_Activity.getCacheDir().getPath() + File.separator + name;
-//                            Bitmap bitmap_inp = null;
-//
-//                            InputStream imageStream = null;
-//                            OutputStream fos = null;
-//
-//                            try {
-//                                imageStream = m_Activity.getContentResolver().openInputStream(mImageUri);
-//                            } catch (Exception e) {
-//                                //Выход с ошибкой
-//                            }
-//                            bitmap_inp = BitmapFactory.decodeStream(imageStream);
-//
-//                            try{
-//                                fos = new FileOutputStream(full_name);
-//                            }
-//                            catch(Exception ex)
-//                            {
-//                                //Выход с ошибкой
-//                            }
-//
-//                            if (fos!=null && bitmap_inp!=null)
-//                            {
-//                                Bitmap bitmap_outp = Bitmap.createScaledBitmap(bitmap_inp, x_scale, y_scale, false);
-//
-//                                try {
-//                                    bitmap_outp.compress(Bitmap.CompressFormat.JPEG, ph_quality, fos);
-//                                    fos.flush();
-//                                    fos.close();
-//
-//                                } catch (Exception e) {
-//                                    //Выход с ошибкой
-//                                }
-//                            }
-//                            else
-//                            {
-//                                //Выход с ошибкой
-//                            }
-//
-//                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-//                                String[] selectionArgsPdf = new String[]{mPhotoDisplayName};
-//                                try {
-//                                    m_Activity.getContentResolver().delete(mImageUri, MediaStore.Files.FileColumns.DISPLAY_NAME + "=?", selectionArgsPdf);
-//                                } catch (Exception ex) {
-//                                    int a = 25/2;
-//                                    a = a+1;
-//
-//                                }
-//
-//                                //теперь удалим из галереи
-//                                final String[] imageColumns = { MediaStore.Images.Media.DATA, MediaStore.Images.Media.DATE_TAKEN, MediaStore.Images.Media.SIZE, MediaStore.Images.Media._ID };
-//                                final String imageOrderBy = MediaStore.Images.Media._ID+" DESC";
-//                                //final String imageWhere = MediaStore.Images.Media._ID+">?";
-//                                final String imageWhere = "";
-//                                //final String[] imageArguments = { Integer.toString(lastID) };
-//                                final String[] imageArguments = {};
-//                                Cursor imageCursor = m_Activity.managedQuery(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, imageColumns, imageWhere, imageArguments, imageOrderBy);
-//                                if(imageCursor.getCount()>1){
-//                                    while(imageCursor.moveToNext()){
-//                                        int id = imageCursor.getInt(imageCursor.getColumnIndex(MediaStore.Images.Media._ID));
-//                                        String path = imageCursor.getString(imageCursor.getColumnIndex(MediaStore.Images.Media.DATA));
-//                                        Long takenTimeStamp = imageCursor.getLong(imageCursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN));
-//                                        Long size = imageCursor.getLong(imageCursor.getColumnIndex(MediaStore.Images.Media.SIZE));
-//                                        ContentResolver cr = m_Activity.getContentResolver();
-//                                        cr.delete(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, MediaStore.Images.Media._ID + "=?", new String[]{ Long.toString(id) } );
-//                                    }
-//                                }
-//                                imageCursor.close();
-//                            }
-//                            else
-//                            {
-//                                File f_del = new File(mImageUri.getPath());
-//                                f_del.delete();
-//                            }
-//
-//                        }
-//
-//                    }
-//                });
-//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-//            mImageUri = getPhotoPath_N();
-//            intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
-//        }
-//        else
-//        {
-//            mImageUri = getPhotoPath_P();
-//            intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
-//        }
-//
-//        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-//
-//        if (intent.resolveActivity(m_Activity.getPackageManager()) != null) {
-//            try {
-//                mStartForResult.launch(intent);
-//                //startActivityForResult(intent, REQUEST_CODE_CAMERA_ACTIVIVTY);
-//            }
-//            catch(Exception ex)
-//            {
-//                //Выход с ошибкой
-//            }
-//        }
-//    }
-//
-//    protected Uri getPhotoPath_N()
-//    {
-//        String name = "frst_" + System.currentTimeMillis() + ".jpg";
-//        String IMAGES_FOLDER_NAME = "";
-//
-//        ContentValues contentValues = new ContentValues();
-//        contentValues.put(MediaStore.Images.Media.TITLE,name);
-//        contentValues.put(MediaStore.Images.Media.DESCRIPTION,"From Camera");
-//        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-//        mPhotoDisplayName = name;
-//
-//        return m_Activity.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
-//
-//    }
-//
-//    protected Uri getPhotoPath_P()
-//    {
-//        String name = "frst_" + System.currentTimeMillis() + ".jpg";
-//        String IMAGES_FOLDER_NAME = "";
-//
-//
-//        String imagesDir = Environment.getExternalStoragePublicDirectory(
-//                Environment.DIRECTORY_DCIM).toString() + File.separator + IMAGES_FOLDER_NAME;
-//
-//        File file = new File(imagesDir);
-//
-//        if (!file.exists()) {
-//            file.mkdir();
-//        }
-//
-//        File image = new File(imagesDir, name);
-//        return Uri.fromFile(image);
-//
-//    }
-//
-//    protected boolean checkCameraHardware(@NotNull Context context) {
-//        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
-//            // this device has a camera
-//            return true;
-//        } else {
-//            // no camera on this device
-//            return false;
-//        }
-//    }
-//    }
 
+        return "ok_en";
+    }
+
+    //================ ZXING
+    public String DecodeBarcode(String in_fn, byte[] in_bytes)
+    {
+        String out_bc = "";
+        Bitmap bitmap=null;
+
+        if (in_fn!=null)
+        {
+            InputStream fis;
+            try {
+                fis = m_Activity.getContentResolver().openInputStream(Uri.parse(in_fn));
+            } catch (Exception e) {
+                return gson.toJson(new coolclever_barcode_decoding_result(false, "Не удалось открыть поток входного файла: " + e.getMessage(), ""));
+            }
+            bitmap = BitmapFactory.decodeStream(fis);
+        }
+        else
+        {
+            if (in_bytes!=null)
+            {
+                bitmap = BitmapFactory.decodeByteArray(in_bytes, 0, in_bytes.length);
+            }
+        }
+
+        if (bitmap == null)
+        {
+            return gson.toJson(new coolclever_barcode_decoding_result(false, "Не удалось прочитать файл как изображение", ""));
+        }
+
+        int width = bitmap.getWidth(), height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+        bitmap.recycle();
+        bitmap = null;
+        LuminanceSource source = new RGBLuminanceSource(width, height, pixels);
+        BinaryBitmap bin_bitmap = new BinaryBitmap(new HybridBinarizer(source));
+        MultiFormatReader mfr = new MultiFormatReader();
+        try {
+            Result rawResult = mfr.decode(bin_bitmap);
+            if (rawResult!= null)
+            {
+                out_bc = rawResult.getText();
+            }
+
+        } catch (NotFoundException e) {
+            return gson.toJson(new coolclever_barcode_decoding_result(false, "Не удалось распознать штрихкод (" + e.getMessage() + ")", ""));
+        }
+
+        return gson.toJson(new coolclever_barcode_decoding_result(true, "", out_bc));
+    }
+
+    class coolclever_barcode_decoding_result {
+        public coolclever_barcode_decoding_result(boolean b, String s, String o)
+        {
+            status = b;
+            description = s;
+            data = o;
+        }
+
+        boolean status = false;
+        String description = "";
+        String data = "";
+    }
 }
 
 
