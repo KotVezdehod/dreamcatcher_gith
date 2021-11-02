@@ -59,7 +59,7 @@ public class catcher implements Runnable {
     }
 
     public void run() {
-        System.loadLibrary("ru_somcompany_dreamcatcher");
+        System.loadLibrary("ru_somecompany_dreamcatcher");
     }
 
     public void show() {
