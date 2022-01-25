@@ -62,7 +62,6 @@ public class catcher implements Runnable {
     private netLocListener net_loc_listener = null;
     private LocationManager loc_manager = null;
     private boolean PostLocationTo1C = false;
-    private boolean LocationDetermined = false;
 
     double gpsLatitude = 0;
     double gpsLongitude = 0;
@@ -488,7 +487,9 @@ public class catcher implements Runnable {
     }
 
     public String GetLocationNow(Boolean gps_provider, Boolean net_provider){
+
         ReturnResult res = StartLocationListener(gps_provider, net_provider);
+
         return gson.toJson(res);
     }
 
@@ -571,12 +572,9 @@ public class catcher implements Runnable {
             gpsSpeed = location.getSpeed();
             gpsAccuracy = location.getAccuracy();
 
-            LocationDetermined = true;
-
-            if (PostLocationTo1C){
-
+            if (!PostLocationTo1C){
+                loc_manager.removeUpdates(gps_loc_listener);
             }
-            loc_manager.removeUpdates(gps_loc_listener);
         }
 
         @Override
@@ -607,12 +605,10 @@ public class catcher implements Runnable {
             netSpeed = location.getSpeed();
             netAccuracy = location.getAccuracy();
 
-            LocationDetermined = true;
-
-            if (PostLocationTo1C){
-
+            if (!PostLocationTo1C){
+                loc_manager.removeUpdates(net_loc_listener);
             }
-            loc_manager.removeUpdates(net_loc_listener);
+
         }
 
         @Override
