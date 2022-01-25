@@ -1,15 +1,28 @@
 package ru.somecompany.dreamcatcher;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.provider.Settings;
+import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.app.ActivityCompat;
+
 import com.google.gson.Gson;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.LuminanceSource;
@@ -21,13 +34,14 @@ import com.google.zxing.common.HybridBinarizer;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import fi.iki.elonen.NanoHTTPD;
 
+import fi.iki.elonen.NanoHTTPD;
 
 public class catcher implements Runnable {
 
@@ -44,13 +58,27 @@ public class catcher implements Runnable {
     JSONArray bk_filters;
     MyHTTPD http_server;
     int HTT_PORT = 8765;
+    private gpsLocListener gps_loc_listener = null;
+    private netLocListener net_loc_listener = null;
+    private LocationManager loc_manager = null;
+    private boolean PostLocationTo1C = false;
+    private boolean LocationDetermined = false;
+
+    double gpsLatitude = 0;
+    double gpsLongitude = 0;
+    double gpsAltitude = 0;
+    double gpsAccuracy = 0;
+    double gpsSpeed = 0;
+    double netLatitude = 0;
+    double netLongitude = 0;
+    double netAltitude = 0;
+    double netAccuracy = 0;
+    double netSpeed = 0;
+
     Gson gson = new Gson();
+
 //    String mPhotoDisplayName;
 //    Uri mImageUri;
-
-    private int REQUEST_CODE_CAMERA_ACTIVIVTY = 201;
-    private int REQUEST_CODE_CAMERA_PERMISSION = 100;
-    private int REQUEST_CODE_WRITE_EXT_STORAGE_PERMISSION = 101;
 
     public catcher(Activity activity, long v8Object) {
         m_Activity = activity;
@@ -362,6 +390,7 @@ public class catcher implements Runnable {
 
         return "ok_en";
     }
+
     void CloseStreams(InputStream fis, FileOutputStream fos) {
         try {
             fis.close();
@@ -372,40 +401,34 @@ public class catcher implements Runnable {
         } catch (Exception e) {
         }
     }
-    public String ClearGalery()
-    {
+
+    public String ClearGalery() {
 
 
         return "ok_en";
     }
 
     //================ ZXING
-    public String DecodeBarcode(String in_fn, byte[] in_bytes)
-    {
+    public String DecodeBarcode(String in_fn, byte[] in_bytes) {
         String out_bc = "";
-        Bitmap bitmap=null;
+        Bitmap bitmap = null;
 
-        if (in_fn!=null)
-        {
+        if (in_fn != null) {
             InputStream fis;
             try {
                 fis = m_Activity.getContentResolver().openInputStream(Uri.parse(in_fn));
             } catch (Exception e) {
-                return gson.toJson(new somcompany_barcode_decoding_result(false, "Не удалось открыть поток входного файла: " + e.getMessage(), ""));
+                return gson.toJson(new ReturnResult(false, "Не удалось открыть поток входного файла: " + e.getMessage(), ""));
             }
             bitmap = BitmapFactory.decodeStream(fis);
-        }
-        else
-        {
-            if (in_bytes!=null)
-            {
+        } else {
+            if (in_bytes != null) {
                 bitmap = BitmapFactory.decodeByteArray(in_bytes, 0, in_bytes.length);
             }
         }
 
-        if (bitmap == null)
-        {
-            return gson.toJson(new somcompany_barcode_decoding_result(false, "Не удалось прочитать файл как изображение", ""));
+        if (bitmap == null) {
+            return gson.toJson(new ReturnResult(false, "Не удалось прочитать файл как изображение", ""));
         }
 
         int width = bitmap.getWidth(), height = bitmap.getHeight();
@@ -418,28 +441,195 @@ public class catcher implements Runnable {
         MultiFormatReader mfr = new MultiFormatReader();
         try {
             Result rawResult = mfr.decode(bin_bitmap);
-            if (rawResult!= null)
-            {
+            if (rawResult != null) {
                 out_bc = rawResult.getText();
             }
 
         } catch (NotFoundException e) {
-            return gson.toJson(new somcompany_barcode_decoding_result(false, "Не удалось распознать штрихкод (" + e.getMessage() + ")", ""));
+            return gson.toJson(new ReturnResult(false, "Не удалось распознать штрихкод (" + e.getMessage() + ")", ""));
         }
 
-        return gson.toJson(new somcompany_barcode_decoding_result(true, "", out_bc));
+        return gson.toJson(new ReturnResult(true, "", out_bc));
     }
 
-    class somcompany_barcode_decoding_result {
-        public somcompany_barcode_decoding_result(boolean b, String s, String o)
-        {
+    class ReturnResult {
+        public ReturnResult(boolean b, String s, String d, Object... ob) {
             status = b;
             description = s;
-            data = o;
+            data = d;
+            object = null;
         }
 
         boolean status = false;
         String description = "";
         String data = "";
+        Object object = "";
     }
+
+    //================ Geolocation
+
+    public class LocationData{
+        double longitude = 0;
+        double latitude = 0;
+        double altitude = 0;
+        double accuracy = 0;
+        double speed = 0;
+        String provider = "";
+
+        public LocationData(double in_long, double in_lat, double in_alt, double in_spd, double in_acc, String in_provider)
+        {
+            longitude = in_long;
+            latitude = in_lat;
+            altitude = in_alt;
+            accuracy = in_acc;
+            speed = in_spd;
+            provider = in_provider;
+        }
+    }
+
+    public String GetLocationNow(Boolean gps_provider, Boolean net_provider){
+        ReturnResult res = StartLocationListener(gps_provider, net_provider);
+        return gson.toJson(res);
+    }
+
+    public String StartLocationListening(Boolean gps_provider, Boolean net_provider){
+        ReturnResult res = StartLocationListener(gps_provider, net_provider);
+        PostLocationTo1C = true;
+        return gson.toJson(res);
+    }
+
+    public void StopLocationFlow()
+    {
+        PostLocationTo1C = false;
+    }
+
+    public ReturnResult StartLocationListener(Boolean gps_provider, Boolean net_provider){
+        if (ActivityCompat.checkSelfPermission(m_Activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(m_Activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return new ReturnResult(false, "Нет прав: '" + Manifest.permission.ACCESS_FINE_LOCATION +  "', " + Manifest.permission.ACCESS_COARSE_LOCATION, "");
+        }
+
+        if (loc_manager == null) {
+            loc_manager = (LocationManager) m_Activity.getSystemService(Context.LOCATION_SERVICE);
+        }
+
+        boolean isGpsProviderEnabled = false;
+        boolean isNetworkProviderEnabled = false;
+
+        if (gps_provider)
+        {
+            if (loc_manager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                isGpsProviderEnabled = true;
+            }
+            if (isGpsProviderEnabled){
+                if (gps_loc_listener == null) {
+                    gps_loc_listener = new gpsLocListener();
+                }
+                if (loc_manager == null) {
+                    loc_manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gps_loc_listener);
+                }
+            }
+        }
+
+        if (net_provider)
+        {
+            if (loc_manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+                isNetworkProviderEnabled = true;
+            }
+            if (isNetworkProviderEnabled){
+                if (net_loc_listener == null) {
+                    net_loc_listener = new netLocListener();
+                }
+
+                if (loc_manager == null) {
+                    loc_manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, net_loc_listener);
+                }
+            }
+        }
+
+        return new ReturnResult((gps_provider && isGpsProviderEnabled) || (net_provider && isNetworkProviderEnabled), "", "", new ProvidersStatus(gps_provider && isGpsProviderEnabled, net_provider && isNetworkProviderEnabled));
+
+    }
+
+    public class ProvidersStatus{
+        public Boolean GPS = false;
+        public Boolean NETWORK = false;
+        public ProvidersStatus(Boolean in_gps, Boolean in_network){
+            GPS = in_gps;
+            NETWORK = in_network;
+            return;
+        }
+    }
+
+    public class gpsLocListener implements LocationListener
+    {
+
+        @Override
+        public void onLocationChanged(Location location) {
+            gpsLatitude = location.getLatitude();
+            gpsLongitude = location.getLongitude();
+            gpsAltitude = location.getAltitude();
+            gpsSpeed = location.getSpeed();
+            gpsAccuracy = location.getAccuracy();
+
+            LocationDetermined = true;
+
+            if (PostLocationTo1C){
+
+            }
+            loc_manager.removeUpdates(gps_loc_listener);
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+    }
+
+    public class netLocListener implements LocationListener
+    {
+
+        @Override
+        public void onLocationChanged(Location location) {
+            netLatitude = location.getLatitude();
+            netLongitude = location.getLongitude();
+            netAltitude = location.getAltitude();
+            netSpeed = location.getSpeed();
+            netAccuracy = location.getAccuracy();
+
+            LocationDetermined = true;
+
+            if (PostLocationTo1C){
+
+            }
+            loc_manager.removeUpdates(net_loc_listener);
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+    }
+
 }
