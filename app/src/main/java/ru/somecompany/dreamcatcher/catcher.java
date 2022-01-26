@@ -101,6 +101,20 @@ public class catcher implements Runnable {
 
     Map<Long, String> http_requests = new HashMap<Long, String>();
 
+    class ReturnResult {
+        public ReturnResult(boolean b, String s, String d, Object... ob) {
+            status = b;
+            description = s;
+            data = d;
+            object = null;
+        }
+
+        boolean status = false;
+        String description = "";
+        String data = "";
+        Object object = "";
+    }
+
     //============================ НАГРУЗКА
 
     //================ GetID
@@ -449,20 +463,6 @@ public class catcher implements Runnable {
         }
 
         return gson.toJson(new ReturnResult(true, "", out_bc));
-    }
-
-    class ReturnResult {
-        public ReturnResult(boolean b, String s, String d, Object... ob) {
-            status = b;
-            description = s;
-            data = d;
-            object = null;
-        }
-
-        boolean status = false;
-        String description = "";
-        String data = "";
-        Object object = "";
     }
 
     //================ Geolocation
