@@ -16,7 +16,10 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.provider.Settings;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -40,6 +43,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Handler;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -50,6 +54,8 @@ public class catcher implements Runnable {
     static native void OnBroadcastCatched(long pObject, String str_out);
 
     static native void OnHttpServerServ(long pObject, String str_url);
+
+    static native void OnLocationReturned(long pObject, String str_out);
 
     private long m_V8Object; // 1C application context
     private Activity m_Activity; // custom activity of 1C:Enterprise
@@ -62,6 +68,7 @@ public class catcher implements Runnable {
     private netLocListener net_loc_listener = null;
     private LocationManager loc_manager = null;
     private boolean PostLocationTo1C = false;
+    Handler mHandler = null;
 
     double gpsLatitude = 0;
     double gpsLongitude = 0;
@@ -274,7 +281,7 @@ public class catcher implements Runnable {
             Method method = session.getMethod();
             String res_from_1c = "";
             long thr_id = Thread.currentThread().getId();
-            somcompany_http_request_result cc_http_req_result = new somcompany_http_request_result();
+            somecompany_http_request_result cc_http_req_result = new somecompany_http_request_result();
 
             if (Method.PUT.equals(method) || Method.POST.equals(method)) {
                 try {
@@ -336,7 +343,7 @@ public class catcher implements Runnable {
 
     }
 
-    class somcompany_http_request_result {
+    class somecompany_http_request_result {
         boolean err = false;
         String err_msg = "";
         String data = "";
@@ -480,20 +487,22 @@ public class catcher implements Runnable {
             longitude = in_long;
             latitude = in_lat;
             altitude = in_alt;
-            accuracy = in_acc;
             speed = in_spd;
+            accuracy = in_acc;
             provider = in_provider;
         }
     }
 
-    public String GetLocationNow(Boolean gps_provider, Boolean net_provider){
+    public String GetLocationNow(boolean gps_provider, boolean net_provider){
+
+        Looper.getMainLooper();
 
         ReturnResult res = StartLocationListener(gps_provider, net_provider);
 
         return gson.toJson(res);
     }
 
-    public String StartLocationListening(Boolean gps_provider, Boolean net_provider){
+    public String StartLocationListening(boolean gps_provider, boolean net_provider){
         ReturnResult res = StartLocationListener(gps_provider, net_provider);
         PostLocationTo1C = true;
         return gson.toJson(res);
@@ -502,10 +511,24 @@ public class catcher implements Runnable {
     public void StopLocationFlow()
     {
         PostLocationTo1C = false;
+        if (loc_manager!=null)
+        {
+            if (gps_loc_listener!=null)
+            {
+                loc_manager.removeUpdates(gps_loc_listener);
+            }
+            if (net_loc_listener!=null)
+            {
+                loc_manager.removeUpdates(net_loc_listener);
+            }
+        }
+
     }
 
-    public ReturnResult StartLocationListener(Boolean gps_provider, Boolean net_provider){
+    public ReturnResult StartLocationListener(boolean gps_provider, boolean net_provider){
+
         if (ActivityCompat.checkSelfPermission(m_Activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(m_Activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(m_Activity, new String[] {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},100);
             return new ReturnResult(false, "Нет прав: '" + Manifest.permission.ACCESS_FINE_LOCATION +  "', " + Manifest.permission.ACCESS_COARSE_LOCATION, "");
         }
 
@@ -518,6 +541,7 @@ public class catcher implements Runnable {
 
         if (gps_provider)
         {
+
             if (loc_manager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
                 isGpsProviderEnabled = true;
             }
@@ -525,8 +549,10 @@ public class catcher implements Runnable {
                 if (gps_loc_listener == null) {
                     gps_loc_listener = new gpsLocListener();
                 }
-                if (loc_manager == null) {
+                if (loc_manager != null) {
+                    Log.w("Hermes",LocationManager.GPS_PROVIDER);
                     loc_manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gps_loc_listener);
+
                 }
             }
         }
@@ -541,7 +567,8 @@ public class catcher implements Runnable {
                     net_loc_listener = new netLocListener();
                 }
 
-                if (loc_manager == null) {
+                if (loc_manager != null) {
+                    Log.w("Hermes",LocationManager.NETWORK_PROVIDER);
                     loc_manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, net_loc_listener);
                 }
             }
@@ -575,6 +602,13 @@ public class catcher implements Runnable {
             if (!PostLocationTo1C){
                 loc_manager.removeUpdates(gps_loc_listener);
             }
+
+
+            String retStr = gson.toJson(new ReturnResult(false, "Нет прав: '" + Manifest.permission.ACCESS_FINE_LOCATION +  "', " + Manifest.permission.ACCESS_COARSE_LOCATION, "",
+                    new LocationData(gpsLongitude, gpsLatitude,gpsAltitude,gpsSpeed,gpsAccuracy,"GPS")));
+
+            OnLocationReturned(m_V8Object, gson.toJson(retStr));
+
         }
 
         @Override
@@ -608,6 +642,13 @@ public class catcher implements Runnable {
             if (!PostLocationTo1C){
                 loc_manager.removeUpdates(net_loc_listener);
             }
+
+
+
+            String retStr = gson.toJson(new ReturnResult(false, "Нет прав: '" + Manifest.permission.ACCESS_FINE_LOCATION +  "', " + Manifest.permission.ACCESS_COARSE_LOCATION, "",
+                    new LocationData(netLongitude, netLatitude, netAltitude, gpsSpeed, netAccuracy,"NETWORK")));
+
+            OnLocationReturned(m_V8Object, gson.toJson(retStr));
 
         }
 
