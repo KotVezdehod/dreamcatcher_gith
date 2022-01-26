@@ -43,7 +43,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -109,17 +111,19 @@ public class catcher implements Runnable {
     Map<Long, String> http_requests = new HashMap<Long, String>();
 
     class ReturnResult {
+        boolean status = false;
+        String description = "";
+        String data = "";
+        Object object = null;
+
         public ReturnResult(boolean b, String s, String d, Object... ob) {
             status = b;
             description = s;
             data = d;
-            object = null;
+            object = ob;
         }
 
-        boolean status = false;
-        String description = "";
-        String data = "";
-        Object object = "";
+
     }
 
     //============================ НАГРУЗКА
@@ -495,7 +499,6 @@ public class catcher implements Runnable {
 
     public String GetLocationNow(boolean gps_provider, boolean net_provider){
 
-        Looper.getMainLooper();
 
         ReturnResult res = StartLocationListener(gps_provider, net_provider);
 
@@ -533,7 +536,9 @@ public class catcher implements Runnable {
         }
 
         if (loc_manager == null) {
+
             loc_manager = (LocationManager) m_Activity.getSystemService(Context.LOCATION_SERVICE);
+
         }
 
         boolean isGpsProviderEnabled = false;
@@ -551,7 +556,7 @@ public class catcher implements Runnable {
                 }
                 if (loc_manager != null) {
                     Log.w("Hermes",LocationManager.GPS_PROVIDER);
-                    loc_manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gps_loc_listener);
+                    loc_manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gps_loc_listener, Looper.getMainLooper());
 
                 }
             }
@@ -569,7 +574,7 @@ public class catcher implements Runnable {
 
                 if (loc_manager != null) {
                     Log.w("Hermes",LocationManager.NETWORK_PROVIDER);
-                    loc_manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, net_loc_listener);
+                    loc_manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, net_loc_listener,Looper.getMainLooper());
                 }
             }
         }
@@ -604,7 +609,7 @@ public class catcher implements Runnable {
             }
 
 
-            String retStr = gson.toJson(new ReturnResult(false, "Нет прав: '" + Manifest.permission.ACCESS_FINE_LOCATION +  "', " + Manifest.permission.ACCESS_COARSE_LOCATION, "",
+            String retStr = gson.toJson(new ReturnResult(true, "", "",
                     new LocationData(gpsLongitude, gpsLatitude,gpsAltitude,gpsSpeed,gpsAccuracy,"GPS")));
 
             OnLocationReturned(m_V8Object, gson.toJson(retStr));
@@ -645,7 +650,7 @@ public class catcher implements Runnable {
 
 
 
-            String retStr = gson.toJson(new ReturnResult(false, "Нет прав: '" + Manifest.permission.ACCESS_FINE_LOCATION +  "', " + Manifest.permission.ACCESS_COARSE_LOCATION, "",
+            String retStr = gson.toJson(new ReturnResult(true, "", "",
                     new LocationData(netLongitude, netLatitude, netAltitude, gpsSpeed, netAccuracy,"NETWORK")));
 
             OnLocationReturned(m_V8Object, gson.toJson(retStr));
