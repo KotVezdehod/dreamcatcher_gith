@@ -42,6 +42,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Handler;
@@ -287,7 +288,7 @@ public class catcher implements Runnable {
             long thr_id = Thread.currentThread().getId();
             somecompany_http_request_result cc_http_req_result = new somecompany_http_request_result();
 
-            if (Method.PUT.equals(method) || Method.POST.equals(method)) {
+            if (Method.PUT.equals(method) || Method.POST.equals(method) || Method.GET.equals(method)) {
                 try {
                     session.parseBody(files);
                 } catch (IOException ioe) {
@@ -297,14 +298,16 @@ public class catcher implements Runnable {
                 }
             }
 
-            for (Map.Entry<String, String> entry : files.entrySet()) {
+
+            if (Method.GET.equals(method)){
+                Map<String, List<String>> params = session.getParameters();
+
                 http_requests.put(thr_id, "");
                 http_request_transport_structure transport = new http_request_transport_structure();
                 transport.req_id = thr_id;
-                transport.data = entry.getValue();
                 transport.uri = session.getUri();
+                transport.data = gson.toJson(params);
                 OnHttpServerServ(m_V8Object, gson.toJson(transport));
-
 
                 for (int i = 0; i < 120; i++)            //даем 1с 60 секунд на обработку запроса. Если 1с не откликнулась, то что-то пошло не так и дальше ждать смысла нет.
                 {
@@ -333,14 +336,53 @@ public class catcher implements Runnable {
                 http_requests.remove(thr_id);       //Перед отправкой ответа удаляем идентификатор запроса из списка.
                 return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, gson.toJson(cc_http_req_result));
 
+            }
+            else{
+                for (Map.Entry<String, String> entry : files.entrySet()) {
+                    http_requests.put(thr_id, "");
+                    http_request_transport_structure transport = new http_request_transport_structure();
+                    transport.req_id = thr_id;
+                    transport.data = entry.getValue();
+                    transport.uri = session.getUri();
+                    OnHttpServerServ(m_V8Object, gson.toJson(transport));
+
+
+                    for (int i = 0; i < 120; i++)            //даем 1с 60 секунд на обработку запроса. Если 1с не откликнулась, то что-то пошло не так и дальше ждать смысла нет.
+                    {
+                        res_from_1c = http_requests.get(thr_id);
+                        if (res_from_1c != "") {
+                            cc_http_req_result.err = false;
+                            cc_http_req_result.err_msg = "";
+                            cc_http_req_result.data = res_from_1c;
+
+                            http_requests.remove(thr_id);       //Перед отправкой ответа удаляем идентификатор запроса из списка.
+
+                            return newFixedLengthResponse(gson.toJson(cc_http_req_result));
+                        }
+
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+                    }
+
+                    cc_http_req_result.err = true;
+                    cc_http_req_result.err_msg = "SERVER INTERNAL ERROR: превышено ожидаемое время обработки запроса на стороне 1с.";
+                    cc_http_req_result.data = "";
+
+                    http_requests.remove(thr_id);       //Перед отправкой ответа удаляем идентификатор запроса из списка.
+                    return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, gson.toJson(cc_http_req_result));
+
                 /* // get the POST body
                 String postBody = session.getQueryParameterString();
                 // or you can access the POST request's parameters
                 String postParameter = session.getParms().get("parameter");
                 return new Response(postBody); // Or postParameter.*/
 
+                };
+
             }
-            ;
 
             return null;
         }
