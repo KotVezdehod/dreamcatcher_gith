@@ -7,6 +7,7 @@ repositories {
 
     maven {
         url "https://raw.github.com/embarkmobile/zxing-android-minimal/mvn-repo/maven-repository/"
+        maven { url "https://jitpack.io" }
     }
 }
 
@@ -47,5 +48,6 @@ dependencies {
     implementation 'com.embarkmobile:zxing-android-minimal:2.0.0@aar'
     implementation 'com.embarkmobile:zxing-android-integration:2.0.0@aar'
     implementation 'com.google.zxing:core:3.0.1'
+    implementation 'com.github.kenglxn.QRGen:android:2.6.0'     //++ maven { url "https://jitpack.io" }
 
 }

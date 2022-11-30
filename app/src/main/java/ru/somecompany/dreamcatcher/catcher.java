@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.provider.Settings;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -38,6 +39,7 @@ import com.google.zxing.common.HybridBinarizer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,6 +51,9 @@ import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
 import fi.iki.elonen.NanoHTTPD;
+
+import net.glxn.qrgen.android.QRCode;
+import net.glxn.qrgen.core.image.ImageType;
 
 public class catcher implements Runnable {
 
@@ -714,6 +719,13 @@ public class catcher implements Runnable {
 
         }
 
+    }
+
+    //================ QRGen
+    public String QRCodeGen(String qr_in, int xy_in)
+    {
+        ByteArrayOutputStream stream = QRCode.from(qr_in).to(ImageType.PNG).withSize(xy_in, xy_in).stream();
+        return gson.toJson(new ReturnResult(true, "", android.util.Base64.encodeToString(stream.toByteArray(), Base64.DEFAULT)));
     }
 
 }
