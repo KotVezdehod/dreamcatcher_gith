@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:gravity="center" android:orientation="vertical" android:background="@color/zxing_encode_view" android:layout_width="fill_parent" android:layout_height="fill_parent" android:fillViewport="true"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <ImageView android:layout_gravity="center_horizontal" android:id="@id/zxing_image_view" android:layout_width="fill_parent" android:layout_height="wrap_content" android:scaleType="center" />
+    <ScrollView android:gravity="center" android:layout_gravity="center_horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <TextView android:textColor="@color/zxing_contents_text" android:gravity="center" android:layout_gravity="center_horizontal" android:id="@id/zxing_contents_text_view" android:paddingLeft="@dimen/zxing_standard_padding" android:paddingRight="@dimen/zxing_standard_padding" android:paddingBottom="@dimen/zxing_standard_padding" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textIsSelectable="true" />
+    </ScrollView>
+</LinearLayout>

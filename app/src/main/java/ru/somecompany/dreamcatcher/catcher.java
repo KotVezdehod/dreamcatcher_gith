@@ -134,6 +134,12 @@ public class catcher implements Runnable {
 
     //============================ НАГРУЗКА
 
+    public void foo()
+    {
+        Intent intent = new Intent("bbbbb.bbbbb.bbb");
+        m_Activity.sendBroadcast(intent);
+    }
+
     //================ GetID
     public String GetID() {
         return Settings.Secure.getString(m_Activity.getContentResolver(),

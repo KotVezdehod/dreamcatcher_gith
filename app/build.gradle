@@ -12,13 +12,13 @@ repositories {
 }
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.3"
+    compileSdkVersion 33
+    buildToolsVersion "33.0.1"
 
     defaultConfig {
         applicationId "ru.somecompany.dreamcatcher"
         minSdkVersion 22
-        targetSdkVersion 30
+        targetSdkVersion 33
         versionCode 3
         versionName '1.1.0'
 
@@ -48,6 +48,6 @@ dependencies {
     implementation 'com.embarkmobile:zxing-android-minimal:2.0.0@aar'
     implementation 'com.embarkmobile:zxing-android-integration:2.0.0@aar'
     implementation 'com.google.zxing:core:3.0.1'
-    implementation 'com.github.kenglxn.QRGen:android:2.6.0'     //++ maven { url "https://jitpack.io" }
-
+    implementation 'com.github.kenglxn.QRGen:android:2.6.0'
+    testImplementation 'junit:junit:4.12'
 }

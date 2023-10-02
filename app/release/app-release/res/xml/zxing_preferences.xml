@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory>
+        <CheckBoxPreference android:key="zxing_preferences_decode_1D_product" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_decode_1D_industrial" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_decode_QR" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_decode_Data_Matrix" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_decode_Aztec" android:defaultValue="false" />
+        <CheckBoxPreference android:key="zxing_preferences_decode_PDF417" android:defaultValue="false" />
+    </PreferenceCategory>
+    <PreferenceCategory>
+        <CheckBoxPreference android:key="zxing_preferences_play_beep" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_vibrate" android:defaultValue="false" />
+        <CheckBoxPreference android:key="zxing_preferences_copy_to_clipboard" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_auto_open_web" android:defaultValue="false" />
+        <CheckBoxPreference android:key="zxing_preferences_remember_duplicates" android:defaultValue="false" />
+        <CheckBoxPreference android:key="zxing_preferences_supplemental" android:defaultValue="true" />
+    </PreferenceCategory>
+    <PreferenceCategory>
+        <ListPreference android:key="zxing_preferences_front_light_mode" android:defaultValue="OFF" android:entryValues="@array/zxing_preferences_front_light_values" />
+        <CheckBoxPreference android:key="zxing_preferences_auto_focus" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_invert_scan" android:defaultValue="false" />
+        <CheckBoxPreference android:key="zxing_preferences_bulk_mode" android:defaultValue="false" />
+        <CheckBoxPreference android:key="zxing_preferences_orientation" android:defaultValue="true" />
+    </PreferenceCategory>
+    <PreferenceCategory>
+        <EditTextPreference android:key="zxing_preferences_custom_product_search" />
+        <ListPreference android:key="zxing_preferences_search_country" android:defaultValue="-" android:entryValues="@array/zxing_country_codes" />
+    </PreferenceCategory>
+    <PreferenceCategory>
+        <CheckBoxPreference android:key="zxing_preferences_disable_continuous_focus" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_disable_exposure" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_disable_metering" android:defaultValue="true" />
+        <CheckBoxPreference android:key="zxing_preferences_disable_barcode_scene_mode" android:defaultValue="true" />
+    </PreferenceCategory>
+</PreferenceScreen>
